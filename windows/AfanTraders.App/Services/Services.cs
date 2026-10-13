@@ -42,8 +42,8 @@ sealed class AppServices
 
     public void Shutdown()
     {
-        Lan.Dispose();
-        Cloud.Dispose();
+        try { Lan.Dispose(); } catch { }
+        try { Cloud.Dispose(); } catch { }
         Store.Dispose();
     }
 }

@@ -21,8 +21,28 @@ static class Program
             MessageBox.Show("AFAN Traders is already open.", "AFAN Traders", MessageBoxButton.OK, MessageBoxImage.Information);
             return 0;
         }
+        // Anything unexpected is written to crash.log in the data folder (helps diagnose problems).
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => CrashLog.Write(e.ExceptionObject as Exception, "unhandled");
+        TaskScheduler.UnobservedTaskException += (_, e) => { CrashLog.Write(e.Exception, "background task"); e.SetObserved(); };
         var app = new App(folder, uitest);
-        return app.Run();
+        var code = app.Run();
+        return code;
+    }
+}
+
+static class CrashLog
+{
+    public static string? Folder;
+
+    public static void Write(Exception? e, string where)
+    {
+        try
+        {
+            var dir = Folder ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AFAN Traders");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(Path.Combine(dir, "crash.log"), $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{where}] {e}\r\n\r\n");
+        }
+        catch { }
     }
 }
 
@@ -42,10 +62,11 @@ sealed class App : Application
         ShutdownMode = ShutdownMode.OnMainWindowClose;
         DispatcherUnhandledException += (_, ex) =>
         {
+            CrashLog.Write(ex.Exception, "screen");
             Ui.Message(ex.Exception is AppError ? ex.Exception.Message : $"Something went wrong:\n{ex.Exception.Message}", "AFAN Traders");
             ex.Handled = true;
         };
-        try { services = new AppServices(folder); }
+        try { services = new AppServices(folder); CrashLog.Folder = services.Store.DataFolder; }
         catch (Exception ex)
         {
             MessageBox.Show($"Could not open the database:\n{ex.Message}", "AFAN Traders", MessageBoxButton.OK, MessageBoxImage.Error);

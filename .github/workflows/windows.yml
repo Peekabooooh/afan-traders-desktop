@@ -30,11 +30,17 @@ jobs:
       - name: Screen test (opens every page and window, takes screenshots)
         shell: pwsh
         run: |
-          $out = "$env:RUNNER_TEMP\uitest"
-          $p = Start-Process -FilePath "dist\publish\AFAN Traders.exe" -ArgumentList "--uitest", "`"$out`"" -PassThru
-          if (-not $p.WaitForExit(240000)) { $p.Kill(); throw "screen test timed out" }
-          Get-Content "$out\uitest.log"
-          if ($p.ExitCode -ne 0) { throw "screen test failed ($($p.ExitCode))" }
+          # Three runs in a row, so a problem that only happens sometimes still shows up.
+          foreach ($i in 1..3) {
+            $out = "$env:RUNNER_TEMP\uitest"
+            if ($i -gt 1) { $out = "$env:RUNNER_TEMP\uitest-$i" }
+            $p = Start-Process -FilePath "dist\publish\AFAN Traders.exe" -ArgumentList "--uitest", "`"$out`"" -PassThru
+            if (-not $p.WaitForExit(240000)) { $p.Kill(); throw "screen test $i timed out" }
+            Write-Output "=== run $i exit code $($p.ExitCode)"
+            Get-Content "$out\uitest.log" | Select-String -Pattern "FAIL|ALL"
+            if (Test-Path "$out\data\crash.log") { Get-Content "$out\data\crash.log" }
+            if ($p.ExitCode -ne 0) { throw "screen test $i failed ($($p.ExitCode))" }
+          }
 
       - name: Build installer
         shell: pwsh
@@ -56,4 +62,5 @@ jobs:
           name: windows-results
           path: |
             ${{ runner.temp }}/uitest
+            ${{ runner.temp }}/uitest-*/data/crash.log
             windows/dist/AFAN-Traders-Setup-*.exe

@@ -138,9 +138,12 @@ public sealed class LanSync : IDisposable
         retry?.Dispose(); retry = null;
         cts?.Cancel();
         try { sd?.Unadvertise(); } catch { }
-        sd?.Dispose(); sd = null;
-        mdns?.Stop(); mdns?.Dispose(); mdns = null;
-        listener?.Stop(); listener = null; Port = null;
+        try { sd?.Dispose(); } catch { }
+        sd = null;
+        try { mdns?.Stop(); mdns?.Dispose(); } catch { }
+        mdns = null;
+        try { listener?.Stop(); } catch { }
+        listener = null; Port = null;
         lock (gate)
         {
             foreach (var c in servers.Concat(clients.Values).ToList()) c.Close();

@@ -35,10 +35,22 @@ public sealed partial class Store : IDisposable
         ReloadAll();
     }
 
-    public void Dispose() => Db.Dispose();
+    bool disposed;
 
-    T Locked<T>(Func<T> f) { lock (Gate) return f(); }
-    void Locked(Action f) { lock (Gate) f(); }
+    /// <summary>Closes the database under the same lock as every other access, so a sync engine
+    /// still finishing on another thread can never touch a half-closed connection.</summary>
+    public void Dispose()
+    {
+        lock (Gate)
+        {
+            if (disposed) return;
+            disposed = true;
+            Db.Dispose();
+        }
+    }
+
+    T Locked<T>(Func<T> f) { lock (Gate) { ObjectDisposedException.ThrowIf(disposed, this); return f(); } }
+    void Locked(Action f) { lock (Gate) { ObjectDisposedException.ThrowIf(disposed, this); f(); } }
 
     void Changed()
     {
