@@ -123,7 +123,7 @@ sealed class ReportsPage : Page
                 tb.Margin = new Thickness(6, 0, 6, 0);
                 tb.HorizontalAlignment = col.Numeric ? HorizontalAlignment.Right : HorizontalAlignment.Left;
                 return tb;
-            }, sortProperty: "Cells") { HeaderStyle = col.Numeric ? Theme.HeaderRight : null });
+            }, sortProperty: "Cells").Also(c => { if (col.Numeric) c.HeaderStyle = Theme.HeaderRight; }));
         }
         // We sort ourselves (by the real numbers) and keep the totals row on top.
         grid.Sorting += (_, e) =>

@@ -24,7 +24,8 @@ static class UiTest
         var st = AppServices.Current.Store;
         Step("seed sample data", () => Seed(st));
 
-        var main = new MainWindow();
+        // Same size on every test PC (the cloud PC's screen is small).
+        var main = new MainWindow { Width = 1440, Height = 900, MinWidth = 1440, MinHeight = 900 };
         Application.Current.MainWindow = main;
         main.Show();
         await Pump();
@@ -135,6 +136,7 @@ static class UiTest
         await StepAsync($"open {name}", async () =>
         {
             var w = make();
+            w.MinWidth = w.Width; w.MinHeight = w.Height;
             w.Owner = Application.Current.MainWindow;
             w.Show();
             await Pump(wait);
@@ -154,8 +156,11 @@ static class UiTest
         return ms.ToArray();
     }
 
-    static void Save(Window w, string name) =>
-        File.WriteAllBytes(Path.Combine(folder, name + ".png"), Render(w, Math.Max(200, (int)w.ActualWidth), Math.Max(200, (int)w.ActualHeight)));
+    static void Save(Window w, string name)
+    {
+        var c = (FrameworkElement)w.Content;
+        File.WriteAllBytes(Path.Combine(folder, name + ".png"), Render(w, Math.Max(200, (int)c.ActualWidth), Math.Max(200, (int)c.ActualHeight)));
+    }
 
     static void Save(BitmapSource img, string name)
     {

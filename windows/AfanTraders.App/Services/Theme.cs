@@ -411,12 +411,12 @@ static class Theme
             glass.SetValue(UIElement.IsHitTestVisibleProperty, false);
             root.AppendChild(glass);
         }
-        var inner = F(typeof(Grid));
-        inner.SetValue(FrameworkElement.MarginProperty, new TemplateBindingExtension(Control.PaddingProperty));
+        // The text box applies its Padding to the text itself, so only the hint needs it here.
         var hint = F(typeof(TextBlock), "hint");
         hint.SetBinding(TextBlock.TextProperty, new Binding(nameof(FrameworkElement.Tag)) { RelativeSource = RelativeSource.TemplatedParent });
         hint.SetValue(TextBlock.ForegroundProperty, Placeholder);
-        hint.SetValue(FrameworkElement.MarginProperty, new Thickness(2, 0, 0, 0));
+        hint.SetValue(FrameworkElement.MarginProperty, new TemplateBindingExtension(Control.PaddingProperty));
+        hint.SetValue(TextBlock.PaddingProperty, new Thickness(2, 0, 0, 0));
         hint.SetValue(FrameworkElement.VerticalAlignmentProperty, new TemplateBindingExtension(Control.VerticalContentAlignmentProperty));
         hint.SetValue(UIElement.VisibilityProperty, Visibility.Collapsed);
         hint.SetValue(UIElement.IsHitTestVisibleProperty, false);
@@ -426,9 +426,8 @@ static class Theme
         host.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty, ScrollBarVisibility.Hidden);
         host.SetValue(FrameworkElement.VerticalAlignmentProperty, new TemplateBindingExtension(Control.VerticalContentAlignmentProperty));
         host.SetValue(Control.BackgroundProperty, Brushes.Transparent);
-        inner.AppendChild(hint);
-        inner.AppendChild(host);
-        root.AppendChild(inner);
+        root.AppendChild(hint);
+        root.AppendChild(host);
 
         var t = new ControlTemplate(typeof(TextBox)) { VisualTree = root };
         t.Triggers.Add(When(TextBox.TextProperty, "", ("hint", UIElement.VisibilityProperty, Visibility.Visible)));

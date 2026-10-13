@@ -53,7 +53,7 @@ static class Grids
             if (right) t.TextAlignment = TextAlignment.Right;
             t.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
             return t;
-        }, sort) { HeaderStyle = right ? Theme.HeaderRight : null });
+        }, sort).Also(c => { if (right) c.HeaderStyle = Theme.HeaderRight; }));
     }
 
     public static void AddCell<T>(this DataGrid g, string header, double width, Func<T, FrameworkElement> build) =>

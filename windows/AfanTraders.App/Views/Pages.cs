@@ -50,7 +50,7 @@ sealed class DashboardPage : Page
     readonly WrapPanel cards = new();
     readonly DataGrid open = Tables.Quotations();
     readonly TextBlock company = Ui.Text("", 30, FontWeights.Bold, Brushes.White);
-    readonly TextBlock summary = Ui.Text("", 13.5, null, Ui.Hex("#C9CEF9"));
+    readonly TextBlock summary = Ui.Text("", 13.5, null, Ui.Hex("#C9CEF9"), TextWrapping.Wrap);
     readonly Squircle emptyOpen = Ui.Card(Ui.Text("Nothing pending. All quotations are invoiced.", 14, null, Ui.Muted).Also(t => t.HorizontalAlignment = HorizontalAlignment.Center), 30);
 
     public DashboardPage()
@@ -61,6 +61,7 @@ sealed class DashboardPage : Page
         var heroDock = new DockPanel();
         DockPanel.SetDock(actions, Dock.Right);
         heroDock.Children.Add(actions);
+        actions.Margin = new Thickness(20, 0, 0, 0);
         heroDock.Children.Add(Ui.Col(4, Ui.Text(Greeting() + "  ·  " + DateTime.Now.ToString("dddd, d MMMM yyyy"), 13, FontWeights.Medium, Ui.Hex("#AEB5F5")), company, summary));
         var hero = new Squircle
         {

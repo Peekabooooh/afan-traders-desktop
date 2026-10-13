@@ -89,5 +89,14 @@ sealed class App : Application
     {
         services?.Shutdown();
         base.OnExit(e);
+        // Everything is saved and closed. End the process now: Windows' own late clean-up of its
+        // PDF and network components can crash after the app is finished (seen on test PCs).
+        TerminateProcess(GetCurrentProcess(), (uint)e.ApplicationExitCode);
     }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    static extern IntPtr GetCurrentProcess();
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    static extern bool TerminateProcess(IntPtr process, uint exitCode);
 }
