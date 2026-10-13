@@ -13,8 +13,12 @@ namespace AfanTraders.App;
 /// <summary>Shows and prints PDFs with Windows' own PDF engine (Windows.Data.Pdf).</summary>
 static class PdfService
 {
-    /// <summary>Renders every page to a bitmap (dpi = 96 for screen, 300 for printing).</summary>
-    public static async Task<List<BitmapSource>> RenderPages(byte[] pdf, double dpi)
+    /// <summary>Renders every page to a bitmap (dpi = 96 for screen, 300 for printing).
+    /// Runs on a background thread: Windows' PDF objects must not live on the screen thread,
+    /// or cleaning them up when the app closes can crash.</summary>
+    public static Task<List<BitmapSource>> RenderPages(byte[] pdf, double dpi) => Task.Run(() => Render(pdf, dpi));
+
+    static async Task<List<BitmapSource>> Render(byte[] pdf, double dpi)
     {
         var pages = new List<BitmapSource>();
         using var input = new InMemoryRandomAccessStream();

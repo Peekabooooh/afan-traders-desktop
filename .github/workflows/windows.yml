@@ -42,6 +42,14 @@ jobs:
             if ($p.ExitCode -ne 0) { throw "screen test $i failed ($($p.ExitCode))" }
           }
 
+      - name: Crash details (only if something failed)
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=(Get-Date).AddMinutes(-30)} -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProviderName -in @('Application Error', '.NET Runtime', 'Windows Error Reporting') } |
+            Select-Object -First 6 | ForEach-Object { "---- $($_.ProviderName) $($_.TimeCreated)"; $_.Message }
+
       - name: Build installer
         shell: pwsh
         run: |
