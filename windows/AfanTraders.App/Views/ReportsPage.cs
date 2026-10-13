@@ -31,7 +31,7 @@ sealed class ReportsPage : Page
     string search = "";
     int? sortColumn;
     bool ascending;
-    readonly StackPanel tabBar = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(20, 0, 20, 8) };
+    readonly WrapPanel tabBar = new() { Margin = new Thickness(20, 0, 20, 8) };
     readonly StackPanel filterBar = new() { Orientation = Orientation.Horizontal };
     readonly Border costBanner;
     readonly ContentControl body = new();
@@ -90,7 +90,7 @@ sealed class ReportsPage : Page
         tabBar.Children.Clear();
         foreach (var (k, label, icon) in Tabs)
         {
-            var b = new ToggleButton { IsChecked = k == kind, Padding = new Thickness(10, 5, 12, 5), Margin = new Thickness(0, 0, 6, 0), Content = Ui.Row(Ui.Icon(icon, 18), Ui.Text("  " + label, 13)) };
+            var b = new ToggleButton { IsChecked = k == kind, Padding = new Thickness(10, 5, 12, 5), Margin = new Thickness(0, 0, 6, 6), Content = Ui.Row(Ui.Icon(icon, 18), Ui.Text("  " + label, 13)) };
             b.Click += (_, _) => { kind = k; sortColumn = null; search = ""; Refresh(); };
             tabBar.Children.Add(b);
         }

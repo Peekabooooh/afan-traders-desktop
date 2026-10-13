@@ -15,7 +15,7 @@ sealed class CodeColumn<T> : DataGridColumn
     {
         Header = header;
         Width = width <= 0 ? new DataGridLength(1, DataGridLengthUnitType.Star) : new DataGridLength(width);
-        MinWidth = 40;
+        MinWidth = width <= 0 ? 170 : 40;   // the flexible column (customer, name…) never gets squeezed away
         this.build = build;
         SortMemberPath = sortProperty;
         CanUserSort = sortProperty != null;

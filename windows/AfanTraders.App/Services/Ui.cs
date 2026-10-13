@@ -120,9 +120,9 @@ static class Ui
 
     public static TextBox Input(string text, Action<string> changed, bool multiline = false, double? width = null)
     {
-        var t = new TextBox { Text = text, MinHeight = 30, VerticalContentAlignment = VerticalAlignment.Center };
-        if (multiline) { t.AcceptsReturn = true; t.TextWrapping = TextWrapping.Wrap; t.MinHeight = 56; t.VerticalContentAlignment = VerticalAlignment.Top; }
-        if (width is { } w) t.Width = w;
+        var t = new TextBox { Text = text, MinHeight = 30, VerticalContentAlignment = VerticalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        if (multiline) { t.AcceptsReturn = true; t.TextWrapping = TextWrapping.Wrap; t.MinHeight = 56; t.VerticalContentAlignment = VerticalAlignment.Top; t.VerticalAlignment = VerticalAlignment.Stretch; }
+        if (width is { } w) { t.Width = w; t.HorizontalAlignment = HorizontalAlignment.Left; }
         t.TextChanged += (_, _) => changed(t.Text);
         return t;
     }
@@ -130,7 +130,7 @@ static class Ui
     /// <summary>Number box: updates the value as you type (commas allowed).</summary>
     public static TextBox Number(double value, Action<double> changed, double width = 90)
     {
-        var t = new TextBox { Text = Fmt.Editable(value), Width = width, MinHeight = 30, TextAlignment = TextAlignment.Right, VerticalContentAlignment = VerticalAlignment.Center };
+        var t = new TextBox { Text = Fmt.Editable(value), Width = width, MinHeight = 30, TextAlignment = TextAlignment.Right, VerticalContentAlignment = VerticalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         t.TextChanged += (_, _) => { if (Fmt.Parse(t.Text) is { } v) changed(v); else if (t.Text.T().Length == 0) changed(0); };
         t.LostFocus += (_, _) => t.Text = Fmt.Editable(Fmt.Parse(t.Text) ?? 0);
         t.GotKeyboardFocus += (_, _) => t.SelectAll();
