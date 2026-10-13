@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>AFAN Traders</AssemblyName>
+    <RootNamespace>AfanTraders.App</RootNamespace>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <Product>AFAN Traders</Product>
+    <Company>AFAN Traders</Company>
+    <Version>1.0.0</Version>
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
+    <!-- One self-contained exe: no .NET install needed on the PC. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AfanTraders.Core\AfanTraders.Core.csproj" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.0" />
+    <Resource Include="Icons\*.png" />
+    <Resource Include="app.ico" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,6 @@
+.DS_Store
+macOS/.build/
+macOS/dist/
+windows/**/bin/
+windows/**/obj/
+windows/dist/

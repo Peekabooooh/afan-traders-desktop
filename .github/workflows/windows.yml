@@ -1,0 +1,59 @@
+# Builds the Windows app on a real Windows machine, runs all tests and the screen test,
+# and keeps the installer, screenshots and logs as downloadable artifacts.
+name: Windows build and test
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Core tests (workflow, cloud sync, office network)
+        run: |
+          dotnet run --project AfanTraders.Tests -c Release -- selftest "$env:RUNNER_TEMP\t-self"
+          dotnet run --project AfanTraders.Tests -c Release -- synctest "$env:RUNNER_TEMP\t-sync"
+          dotnet run --project AfanTraders.Tests -c Release -- lantest "$env:RUNNER_TEMP\t-lan"
+
+      - name: Publish app
+        run: dotnet publish AfanTraders.App/AfanTraders.App.csproj -c Release -o dist/publish
+
+      - name: Screen test (opens every page and window, takes screenshots)
+        shell: pwsh
+        run: |
+          $out = "$env:RUNNER_TEMP\uitest"
+          $p = Start-Process -FilePath "dist\publish\AFAN Traders.exe" -ArgumentList "--uitest", "`"$out`"" -PassThru
+          if (-not $p.WaitForExit(240000)) { $p.Kill(); throw "screen test timed out" }
+          Get-Content "$out\uitest.log"
+          if ($p.ExitCode -ne 0) { throw "screen test failed ($($p.ExitCode))" }
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          choco install nsis -y --no-progress
+          & "C:\Program Files (x86)\NSIS\makensis.exe" installer\afan-traders.nsi
+
+      - name: Silent install check
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist\AFAN-Traders-Setup-*.exe | Select-Object -First 1
+          Start-Process -FilePath $setup.FullName -ArgumentList "/S" -Wait
+          if (-not (Test-Path "C:\Program Files\AFAN Traders\AFAN Traders.exe")) { throw "not installed" }
+          Write-Output "Installed OK"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-results
+          path: |
+            ${{ runner.temp }}/uitest
+            windows/dist/AFAN-Traders-Setup-*.exe
