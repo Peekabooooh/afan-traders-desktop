@@ -55,10 +55,10 @@ sealed class SettingsPage : Page
         catch (Exception e) { Ui.Message("Could not save settings: " + e.Message); }
     }
 
-    static Squircle Section(string title, string icon, string? footer, params UIElement[] rows)
+    static Border Section(string title, string icon, string? footer, params UIElement[] rows)
     {
         var p = new StackPanel();
-        p.Children.Add(Ui.Row(Ui.IconTile(icon, Ui.Blue, 40, 26), Ui.Text("   " + title, 17, FontWeights.SemiBold, Ui.Navy)).Also(r => r.Margin = new Thickness(0, 0, 0, 16)));
+        p.Children.Add(Ui.Row(Ui.Icon(icon, 24), Ui.Text("  " + title, 16, FontWeights.SemiBold)).Also(r => r.Margin = new Thickness(0, 0, 0, 10)));
         foreach (var r in rows) p.Children.Add(r.Also(x => { if (x is FrameworkElement f) f.Margin = new Thickness(0, 0, 0, 10); }));
         if (footer != null) p.Children.Add(Ui.Text(footer, 12, null, Ui.Muted, TextWrapping.Wrap));
         return Ui.Card(p).Also(c => { c.Margin = new Thickness(0, 0, 0, 16); c.MaxWidth = 900; c.HorizontalAlignment = HorizontalAlignment.Left; });
@@ -67,7 +67,7 @@ sealed class SettingsPage : Page
     static UIElement Pair(string label, UIElement control)
     {
         var d = new DockPanel();
-        var l = Ui.Text(label, 13, FontWeights.Medium, Theme.Ink2).Also(t => { t.Width = 230; t.VerticalAlignment = VerticalAlignment.Top; t.Margin = new Thickness(0, 8, 0, 0); });
+        var l = Ui.Text(label, 13).Also(t => { t.Width = 230; t.VerticalAlignment = VerticalAlignment.Top; t.Margin = new Thickness(0, 6, 0, 0); });
         DockPanel.SetDock(l, Dock.Left);
         d.Children.Add(l);
         d.Children.Add(control);

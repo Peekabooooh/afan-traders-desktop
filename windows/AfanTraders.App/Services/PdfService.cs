@@ -83,8 +83,7 @@ sealed class PdfPreviewWindow : Window
         Width = 900; Height = 1000;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Owner = Application.Current.MainWindow;
-        Background = Ui.Hex("#E4E7EF");
-        Theme.Window(this, Ui.CardBg);
+        Background = Ui.Hex("#E6E9EE");
         var pages = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 16, 0, 16) };
         var footer = Ui.Footer(
             new UIElement[] { Ui.Row(Ui.Icon("printer", 26), Ui.Text("  " + title, 15, FontWeights.SemiBold)) },
@@ -94,7 +93,7 @@ sealed class PdfPreviewWindow : Window
                 Ui.Btn("Print…", () => _ = PdfService.Print(pdf, fileName), primary: true),
                 Ui.Btn("Close", Close),
             });
-        var root = new DockPanel { Background = Background };
+        var root = new DockPanel();
         DockPanel.SetDock(footer, Dock.Top);
         root.Children.Add(footer);
         root.Children.Add(new ScrollViewer { Content = pages, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto });
@@ -107,8 +106,8 @@ sealed class PdfPreviewWindow : Window
                 foreach (var img in await PdfService.RenderPages(pdf, 110))
                     pages.Children.Add(new Border
                     {
-                        Margin = new Thickness(0, 0, 0, 20), Background = Brushes.White,
-                        Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 24, ShadowDepth = 4, Direction = 270, Opacity = 0.18 },
+                        Margin = new Thickness(0, 0, 0, 16), Background = Brushes.White,
+                        Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 12, ShadowDepth = 2, Opacity = 0.25 },
                         Child = new Image { Source = img, Width = 794, Stretch = Stretch.Uniform },
                     });
             }

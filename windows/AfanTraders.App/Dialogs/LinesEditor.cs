@@ -6,7 +6,7 @@ using AfanTraders.Core;
 namespace AfanTraders.App;
 
 /// <summary>Line items table for quotations, delivery challans and invoices.</summary>
-sealed class LinesEditor : Squircle
+sealed class LinesEditor : Border
 {
     public enum Mode { Quotation, Challan, Invoice }
 
@@ -27,7 +27,7 @@ sealed class LinesEditor : Squircle
         Lines = lines.ToList();
         this.mode = mode;
         this.locked = locked;
-        Background = Ui.CardBg; BorderBrush = Ui.Line; BorderThickness = 1; CornerRadius = 18; ClipContent = true; Shadow = 18; ShadowDepth = 3; ShadowOpacity = 0.06;
+        Background = Ui.CardBg; BorderBrush = Ui.Line; BorderThickness = new Thickness(1); CornerRadius = new CornerRadius(10);
         Rebuild();
     }
 
@@ -48,13 +48,13 @@ sealed class LinesEditor : Squircle
     {
         var root = new StackPanel();
         var head = Columns();
-        head.Margin = new Thickness(12, 12, 12, 11);
+        head.Margin = new Thickness(12, 10, 12, 8);
         string[] titles = { "#", "Item ID", "Item / Description", "Unit", "Qty" };
         int c = 0;
         foreach (var t in titles) Put(head, Ui.Text(t, 12, FontWeights.SemiBold, Ui.Muted).Also(x => { if (t == "Qty") x.HorizontalAlignment = HorizontalAlignment.Right; }), c++);
         if (ShowPrices) { Put(head, Right(Ui.Text(mode == Mode.Invoice ? "Invoice Rate" : "Rate", 12, FontWeights.SemiBold, Ui.Muted)), c++); Put(head, Right(Ui.Text("Amount", 12, FontWeights.SemiBold, Ui.Muted)), c++); }
         if (ShowCost) { Put(head, Right(Ui.Text("Cost", 12, FontWeights.SemiBold, Ui.Muted)), c++); Put(head, Right(Ui.Text("Profit", 12, FontWeights.SemiBold, Ui.Muted)), c++); }
-        root.Children.Add(new Border { Child = head, Background = Theme.HeaderBg });
+        root.Children.Add(head);
         root.Children.Add(new Border { Height = 1, Background = Ui.Line });
         var rows = new StackPanel();
         if (Lines.Count == 0)
@@ -124,7 +124,7 @@ sealed class LinesEditor : Squircle
         if (ShowCost) { Put(g, Right(cost), c++); Put(g, Right(profit), c++); }
         if (CanDelete)
         {
-            var del = new Button { Content = Ui.Glyph("\uE74D", 14, Ui.Red), Style = Theme.Button(Look.Ghost), Padding = new Thickness(6, 4, 6, 4), MinHeight = 28, ToolTip = "Remove this item" };
+            var del = new Button { Content = "🗑", Foreground = Ui.Red, Padding = new Thickness(4, 0, 4, 0), Background = Brushes.Transparent, BorderThickness = new Thickness(0), ToolTip = "Remove this item" };
             del.Click += (_, _) => { Lines.RemoveAt(index); Rebuild(); Changed?.Invoke(); };
             Put(g, Right(del), c++);
         }
@@ -157,9 +157,9 @@ sealed class LinesEditor : Squircle
 }
 
 /// <summary>Subtotal / sales tax / grand total (and profit while costs are shown).</summary>
-sealed class TotalsBox : Squircle
+sealed class TotalsBox : Border
 {
-    readonly TextBlock subtotal = Ui.Text("", 14), tax = Ui.Text("", 14), grand = Ui.Text("", 21, FontWeights.Bold, Ui.Blue), profit = Ui.Text("", 12.5, FontWeights.SemiBold);
+    readonly TextBlock subtotal = Ui.Text("", 14), tax = Ui.Text("", 14), grand = Ui.Text("", 19, FontWeights.Bold, Ui.Navy), profit = Ui.Text("", 12.5, FontWeights.SemiBold);
     readonly DockPanel profitRow;
     readonly Func<(double Sub, double Rate, double Profit)> source;
     static string Cur => AppServices.Current.Store.Settings.Currency;
@@ -167,7 +167,7 @@ sealed class TotalsBox : Squircle
     public TotalsBox(Func<(double Sub, double Rate, double Profit)> source, double taxRate, Action<double>? taxChanged)
     {
         this.source = source;
-        Width = 360; Background = Ui.CardBg; BorderBrush = Ui.Line; BorderThickness = 1; CornerRadius = 18; Padding = new Thickness(20, 16, 20, 16); Shadow = 18; ShadowDepth = 3; ShadowOpacity = 0.06;
+        Width = 360; Background = Ui.CardBg; BorderBrush = Ui.Line; BorderThickness = new Thickness(1); CornerRadius = new CornerRadius(10); Padding = new Thickness(16);
         DockPanel Line(UIElement left, UIElement right) { var d = new DockPanel { Margin = new Thickness(0, 4, 0, 4) }; DockPanel.SetDock(right, Dock.Right); d.Children.Add(right); d.Children.Add(left); return d; }
         UIElement taxLabel = taxChanged == null ? Ui.Text($"Sales Tax ({Fmt.Qty(taxRate)}%)", 14)
             : Ui.Row(Ui.Text("Sales Tax  ", 14), Ui.Number(taxRate, v => { taxChanged(v); Update(); }, 60), Ui.Text(" %", 14));
