@@ -35,8 +35,9 @@ static class Grids
             AutoGenerateColumns = false, IsReadOnly = true, CanUserAddRows = false, CanUserDeleteRows = false,
             SelectionMode = DataGridSelectionMode.Single, SelectionUnit = DataGridSelectionUnit.FullRow,
             HeadersVisibility = DataGridHeadersVisibility.Column, GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-            HorizontalGridLinesBrush = Ui.Line, RowHeight = 38, AlternatingRowBackground = Ui.Zebra, Background = Ui.CardBg,
-            BorderBrush = Ui.Line, BorderThickness = new Thickness(1), CanUserResizeRows = false, CanUserReorderColumns = false,
+            HorizontalGridLinesBrush = Theme.GridLine, RowHeight = 46, ColumnHeaderHeight = 42, RowBackground = Ui.CardBg, AlternatingRowBackground = Ui.CardBg,
+            Background = Ui.CardBg, BorderThickness = new Thickness(0), CanUserResizeRows = false, CanUserReorderColumns = false,
+            ColumnHeaderStyle = Theme.HeaderLeft, CellStyle = Theme.Cell, RowStyle = Theme.Row, Foreground = Theme.Ink,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             EnableRowVirtualization = true,
         };
@@ -52,7 +53,7 @@ static class Grids
             if (right) t.TextAlignment = TextAlignment.Right;
             t.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
             return t;
-        }, sort));
+        }, sort) { HeaderStyle = right ? Theme.HeaderRight : null });
     }
 
     public static void AddCell<T>(this DataGrid g, string header, double width, Func<T, FrameworkElement> build) =>
@@ -93,23 +94,22 @@ static class PageParts
     public static Border TitleBar(string title, TextBox? search, params UIElement[] actions)
     {
         var dock = new DockPanel { LastChildFill = false };
-        var t = Ui.Text(title, 22, FontWeights.SemiBold);
+        var t = Ui.Text(title, 26, FontWeights.Bold, Ui.Navy);
         DockPanel.SetDock(t, Dock.Left);
         dock.Children.Add(t);
         foreach (var a in actions.Reverse()) { DockPanel.SetDock(a, Dock.Right); dock.Children.Add(a); }
         if (search != null)
         {
-            var box = Ui.Row(Ui.Text("🔍", 13, null, Ui.Muted).Also(x => x.Margin = new Thickness(0, 0, 6, 0)), search);
-            box.Margin = new Thickness(0, 0, 8, 0);
-            DockPanel.SetDock(box, Dock.Right);
-            dock.Children.Add(box);
+            search.Margin = new Thickness(0, 0, 4, 0);
+            DockPanel.SetDock(search, Dock.Right);
+            dock.Children.Add(search);
         }
-        return new Border { Child = dock, Padding = new Thickness(20, 16, 20, 12) };
+        return new Border { Child = dock, Padding = new Thickness(28, 22, 28, 14) };
     }
 
     public static TextBox Search(string hint, Action<string> changed)
     {
-        var t = new TextBox { Width = 300, MinHeight = 30, VerticalContentAlignment = VerticalAlignment.Center, ToolTip = hint };
+        var t = new TextBox { Width = 320, Style = Theme.SearchBox, Tag = hint, ToolTip = hint, VerticalAlignment = VerticalAlignment.Center };
         t.TextChanged += (_, _) => changed(t.Text);
         return t;
     }
@@ -120,18 +120,18 @@ static class PageParts
         DockPanel.SetDock(top, Dock.Top);
         d.Children.Add(top);
         if (bottom != null) { DockPanel.SetDock(bottom, Dock.Bottom); d.Children.Add(bottom); }
-        d.Children.Add(new Border { Child = main, Margin = new Thickness(20, 0, 20, bottom == null ? 16 : 0) });
+        d.Children.Add(new Border { Child = main, Margin = new Thickness(28, 0, 28, bottom == null ? 24 : 0) });
         return d;
     }
 
-    public static Border Empty(string icon, string title, string text, params UIElement[] actions)
+    public static Squircle Empty(string icon, string title, string text, params UIElement[] actions)
     {
         var p = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        p.Children.Add(Ui.Icon(icon, 64).Also(i => i.Margin = new Thickness(0, 0, 0, 12)));
-        p.Children.Add(Ui.Text(title, 18, FontWeights.SemiBold).Also(t => t.HorizontalAlignment = HorizontalAlignment.Center));
+        p.Children.Add(Ui.IconTile(icon, Ui.Blue, 96, 62).Also(i => { i.HorizontalAlignment = HorizontalAlignment.Center; i.Margin = new Thickness(0, 0, 0, 16); }));
+        p.Children.Add(Ui.Text(title, 19, FontWeights.SemiBold, Ui.Navy).Also(t => t.HorizontalAlignment = HorizontalAlignment.Center));
         p.Children.Add(Ui.Text(text, 13, null, Ui.Muted, TextWrapping.Wrap).Also(t => { t.HorizontalAlignment = HorizontalAlignment.Center; t.TextAlignment = TextAlignment.Center; t.MaxWidth = 420; t.Margin = new Thickness(0, 6, 0, 12); }));
         if (actions.Length > 0) p.Children.Add(Ui.Row(actions).Also(r => r.HorizontalAlignment = HorizontalAlignment.Center));
-        return new Border { Child = p, Background = Ui.CardBg, BorderBrush = Ui.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10), MinHeight = 320 };
+        return Ui.Card(p).Also(c => c.MinHeight = 340);
     }
 
     public static Border StagePill(OrderStage s) => s switch
@@ -153,8 +153,8 @@ static class PageParts
             _ => ("View Invoice", false, null),
         };
         var b = Ui.Btn(label, () => Nav.NextStep(q), primary, tint: tint);
-        b.Padding = new Thickness(10, 2, 10, 2);
-        b.MinHeight = 26;
+        b.Padding = new Thickness(12, 3, 12, 3);
+        b.MinHeight = 30;
         b.Margin = new Thickness(0);
         return b;
     }
@@ -163,7 +163,7 @@ static class PageParts
 /// <summary>Type an Item ID or name; matching inventory items drop down. Click or press Enter to use one.</summary>
 sealed class ItemSearchBox : Grid
 {
-    readonly TextBox box = new() { MinHeight = 34, VerticalContentAlignment = VerticalAlignment.Center, FontSize = 14 };
+    readonly TextBox box = new() { Style = Theme.SearchBox, MinHeight = 40, FontSize = 14 };
     readonly Popup popup = new() { StaysOpen = false, AllowsTransparency = true, Placement = PlacementMode.Bottom };
     readonly ListBox list = new() { MaxHeight = 360, Width = 560, BorderThickness = new Thickness(1), BorderBrush = Ui.Line };
     readonly bool allowNew;
@@ -177,13 +177,16 @@ sealed class ItemSearchBox : Grid
         this.allowNew = allowNew;
         this.onNew = onNew ?? (_ => { });
         box.ToolTip = hint;
+        box.Tag = allowNew ? "Type an Item ID or name…" : "Type an Item ID or name to add it…";
         var label = Ui.Caption(hint).Also(t => { t.Margin = new Thickness(0, 0, 0, 4); });
         var stack = new StackPanel();
         stack.Children.Add(label);
         stack.Children.Add(box);
         Children.Add(stack);
         popup.PlacementTarget = box;
-        popup.Child = new Border { Child = list, Background = Brushes.White, Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 10, ShadowDepth = 3, Opacity = 0.2 } };
+        popup.HorizontalOffset = -10;
+        list.BorderThickness = new Thickness(0); list.Background = Brushes.Transparent;
+        popup.Child = new Squircle { Child = list, Background = Brushes.White, BorderBrush = Ui.Line, BorderThickness = 1, CornerRadius = 14, Padding = new Thickness(6), Shadow = 24, ShadowDepth = 6, ShadowOpacity = 0.16, Margin = new Thickness(10, 4, 10, 16) };
         list.PreviewMouseLeftButtonUp += (_, _) => PickSelected();
         box.TextChanged += (_, _) => Update();
         box.PreviewKeyDown += (_, e) =>
@@ -260,7 +263,7 @@ static class Flow
             var color = done ? Ui.Green : pending ? Ui.Orange : Ui.Muted;
             var mark = Ui.Text(done ? "✔" : pending ? "⏳" : "○", 15, FontWeights.Bold, color).Also(t => t.Margin = new Thickness(0, 0, 8, 0));
             var text = Ui.Col(0, Ui.Text(title, 12, FontWeights.SemiBold), Ui.Text(detail, 11, null, Ui.Muted));
-            return new Border { Child = Ui.Row(Ui.Icon(icon, 22).Also(i => i.Margin = new Thickness(0, 0, 8, 0)), mark, text), Background = Ui.Tint(color, 22), CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 6, 12, 6) };
+            return new Squircle { Child = Ui.Row(Ui.Icon(icon, 22).Also(i => i.Margin = new Thickness(0, 0, 8, 0)), mark, text), Background = Ui.Tint(color, 20), BorderBrush = Ui.Tint(color, 50), BorderThickness = 1, CornerRadius = 12, Padding = new Thickness(12, 7, 14, 7) };
         }
         UIElement Arrow() => Ui.Text("  ›  ", 16, FontWeights.Bold, Ui.Muted);
         return Ui.Row(

@@ -31,9 +31,9 @@ sealed class ReportsPage : Page
     string search = "";
     int? sortColumn;
     bool ascending;
-    readonly WrapPanel tabBar = new() { Margin = new Thickness(20, 0, 20, 8) };
+    readonly WrapPanel tabBar = new() { Margin = new Thickness(28, 0, 28, 8) };
     readonly StackPanel filterBar = new() { Orientation = Orientation.Horizontal };
-    readonly Border costBanner;
+    readonly Squircle costBanner;
     readonly ContentControl body = new();
     readonly TextBlock periodText = Ui.Text("", 13, null, Ui.Muted);
     readonly StackPanel tableTools = new() { Orientation = Orientation.Horizontal };
@@ -44,7 +44,7 @@ sealed class ReportsPage : Page
 
     public ReportsPage()
     {
-        var presetBox = new ComboBox { Width = 170, MinHeight = 30 };
+        var presetBox = new ComboBox { Width = 180, MinHeight = 34 };
         foreach (var p in Enum.GetValues<RangePreset>()) presetBox.Items.Add(new ComboBoxItem { Content = p.Title(), Tag = p });
         presetBox.SelectedIndex = (int)preset;
         var fromPick = Ui.Date(from, v => { from = v; Refresh(); });
@@ -56,29 +56,25 @@ sealed class ReportsPage : Page
             if (presetBox.SelectedItem is ComboBoxItem { Tag: RangePreset p }) { preset = p; custom.Visibility = p == RangePreset.Custom ? Visibility.Visible : Visibility.Collapsed; Refresh(); }
         };
         var searchBox = PageParts.Search("Filter rows (customer, item, number…)", s => { search = s; RefreshBody(); }).Also(t => t.Width = 240);
-        tableTools.Children.Add(Ui.Text("🔍 ", 13, null, Ui.Muted));
         tableTools.Children.Add(searchBox);
         tableTools.Children.Add(Ui.Btn("Export to Excel", ExportCsv));
         tableTools.Children.Add(Ui.Btn("Print / PDF", PrintReport, icon: "printer"));
-        filterBar.Children.Add(Ui.Text("Period  ", 13));
+        filterBar.Children.Add(Ui.Text("Period   ", 13, FontWeights.Medium, Theme.Ink2));
         filterBar.Children.Add(presetBox);
         filterBar.Children.Add(custom);
         filterBar.Children.Add(periodText.Also(t => t.Margin = new Thickness(12, 0, 0, 0)));
-        var filterDock = new DockPanel { Margin = new Thickness(20, 0, 20, 8) };
+        var filterDock = new DockPanel { Margin = new Thickness(28, 4, 28, 14) };
         DockPanel.SetDock(tableTools, Dock.Right);
         filterDock.Children.Add(tableTools);
         filterDock.Children.Add(filterBar);
 
-        costBanner = new Border
-        {
-            Margin = new Thickness(20, 0, 20, 8), Padding = new Thickness(12, 6, 12, 6), Background = Ui.Tint(Ui.Muted, 20), CornerRadius = new CornerRadius(6),
-            Child = Ui.Row(Ui.Text("👁  Cost and profit are hidden.  ", 13, null, Ui.Muted), Ui.Btn("Show Cost & Profit", () => S.ShowCost = true)),
-        };
+        costBanner = Ui.Note(Ui.Row(Ui.Icon("eye", 18), Ui.Text("   Cost and profit are hidden.   ", 13, FontWeights.Medium, Theme.Ink2), Ui.Btn("Show Cost & Profit", () => S.ShowCost = true)), Ui.Blue)
+            .Also(n => { n.Margin = new Thickness(28, 0, 28, 14); n.Padding = new Thickness(14, 6, 8, 6); });
         var top = Ui.Col(0, PageParts.TitleBar("Reports", null), tabBar, filterDock, costBanner);
         var dock = new DockPanel();
         DockPanel.SetDock(top, Dock.Top);
         dock.Children.Add(top);
-        dock.Children.Add(new Border { Child = body, Margin = new Thickness(20, 0, 20, 16) });
+        dock.Children.Add(new Border { Child = body, Margin = new Thickness(28, 0, 28, 24) });
         Content = dock;
     }
 
@@ -90,7 +86,7 @@ sealed class ReportsPage : Page
         tabBar.Children.Clear();
         foreach (var (k, label, icon) in Tabs)
         {
-            var b = new ToggleButton { IsChecked = k == kind, Padding = new Thickness(10, 5, 12, 5), Margin = new Thickness(0, 0, 6, 6), Content = Ui.Row(Ui.Icon(icon, 18), Ui.Text("  " + label, 13)) };
+            var b = new ToggleButton { IsChecked = k == kind, Style = Theme.Chip, Padding = new Thickness(10, 5, 14, 5), Margin = new Thickness(0, 0, 8, 8), Content = Ui.Row(Ui.Icon(icon, 20), Ui.Text("  " + label, 13)) };
             b.Click += (_, _) => { kind = k; sortColumn = null; search = ""; Refresh(); };
             tabBar.Children.Add(b);
         }
@@ -127,7 +123,7 @@ sealed class ReportsPage : Page
                 tb.Margin = new Thickness(6, 0, 6, 0);
                 tb.HorizontalAlignment = col.Numeric ? HorizontalAlignment.Right : HorizontalAlignment.Left;
                 return tb;
-            }, sortProperty: "Cells"));
+            }, sortProperty: "Cells") { HeaderStyle = col.Numeric ? Theme.HeaderRight : null });
         }
         // We sort ourselves (by the real numbers) and keep the totals row on top.
         grid.Sorting += (_, e) =>
@@ -141,9 +137,9 @@ sealed class ReportsPage : Page
         if (t.Totals(rows) is { } tot) list.Add(new RRow { Cells = tot, IsTotal = true });
         list.AddRange(rows.Select(r => new RRow { Cells = r.Cells, Open = r.Open }));
         grid.ItemsSource = list;
-        grid.LoadingRow += (_, e) => { if (e.Row.Item is RRow { IsTotal: true }) e.Row.Background = Ui.Tint(Ui.Navy, 26); };
+        grid.LoadingRow += (_, e) => { if (e.Row.Item is RRow { IsTotal: true }) e.Row.Background = Theme.AccentSoft; };
         grid.OnOpen<RRow>(r => OpenTarget(r.Open));
-        body.Content = grid;
+        body.Content = Ui.TableCard(grid);
     }
 
     void OpenTarget(OpenTarget? o)
@@ -185,10 +181,10 @@ sealed class ReportsPage : Page
         void Tile(string title, string value, string sub, string icon, bool sensitive = false, bool negative = false)
         {
             var hidden = sensitive && !S.ShowCost;
-            var c = Ui.Card(Ui.Row(Ui.Icon(icon, 38), Ui.Col(1,
-                Ui.Text(title, 12, null, Ui.Muted), Ui.Text(hidden ? "••••••" : value, 19, FontWeights.Bold, hidden ? Ui.Muted : negative ? Ui.Red : null),
-                Ui.Text(hidden ? "hidden" : sub, 11, null, Ui.Muted)).Also(p => p.Margin = new Thickness(12, 0, 0, 0))), 12);
-            c.Width = 255; c.Margin = new Thickness(0, 0, 12, 12);
+            var c = Ui.Card(Ui.Row(Ui.IconTile(icon, sensitive ? Ui.Orange : Ui.Blue, 48, 30), Ui.Col(1,
+                Ui.Text(title, 12, FontWeights.Medium, Ui.Muted), Ui.Text(hidden ? "••••••" : value, 20, FontWeights.Bold, hidden ? Ui.Muted : negative ? Ui.Red : Ui.Navy),
+                Ui.Text(hidden ? "hidden" : sub, 11.5, null, Ui.Muted)).Also(p => p.Margin = new Thickness(14, 0, 0, 0))), 16);
+            c.Width = 262; c.Margin = new Thickness(0, 0, 14, 14);
             tiles.Children.Add(c);
         }
         Tile("Net Sales", Fmt.Money(o.NetSales, cur), "before sales tax", "invoices");
@@ -201,7 +197,7 @@ sealed class ReportsPage : Page
         Tile("Stock Value", Fmt.Money(o.StockCost, cur), $"at cost · {Fmt.Money(o.StockSale, cur)} at sale", "stockin", true);
 
         var chart = Ui.Card(new SalesChart(o.Points, o.ByMonth, S.ShowCost, cur) { Height = 300 });
-        var rankings = new Grid { Margin = new Thickness(0, 14, 0, 0) };
+        var rankings = new Grid { Margin = new Thickness(0, 16, 0, 0) };
         rankings.ColumnDefinitions.Add(new ColumnDefinition());
         rankings.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
         rankings.ColumnDefinitions.Add(new ColumnDefinition());
@@ -220,7 +216,7 @@ sealed class ReportsPage : Page
         var top = data.Count > 0 ? data.Max(d => d.Sales) : 1;
         foreach (var d in data)
         {
-            var row = new DockPanel { Margin = new Thickness(0, 8, 0, 2) };
+            var row = new DockPanel { Margin = new Thickness(0, 10, 0, 4) };
             var right = Ui.Row(Ui.Text(Fmt.Money(d.Sales, cur), 13, FontWeights.Medium));
             if (S.ShowCost) right.Children.Add(Ui.Text($"   profit {Fmt.Money(d.Profit)}", 12, null, d.Profit < 0 ? Ui.Red : Ui.Muted));
             DockPanel.SetDock(right, Dock.Right);
@@ -230,7 +226,7 @@ sealed class ReportsPage : Page
             var bar = new Grid { Height = 6 };
             bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(0.02, d.Sales / Math.Max(top, 1)), GridUnitType.Star) });
             bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(0, 1 - d.Sales / Math.Max(top, 1)), GridUnitType.Star) });
-            bar.Children.Add(new Border { Background = SalesChart.SalesBrush, CornerRadius = new CornerRadius(2) });
+            bar.Children.Add(new Border { Background = SalesChart.SalesBrush, CornerRadius = new CornerRadius(3) });
             p.Children.Add(bar);
         }
         return Ui.Card(p);

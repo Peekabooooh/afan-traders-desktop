@@ -10,7 +10,7 @@ static class Forms
     public static Border Notes(string label, string text, Action<string> changed) =>
         new() { Child = Ui.Field(label, Ui.Input(text, changed, multiline: true).Also(t => t.Height = 90)), MinWidth = 380 };
 
-    public static Border CustomerCard(string title, string name, string address, string phone,
+    public static Squircle CustomerCard(string title, string name, string address, string phone,
                                       Action<string> setName, Action<string> setAddress, Action<string> setPhone, bool offerPrevious)
     {
         var nameBox = Ui.Input(name, setName);
@@ -23,7 +23,7 @@ static class Forms
             var customers = AppServices.Current.Store.KnownCustomers();
             if (customers.Count > 0)
             {
-                var pick = new ComboBox { Width = 200, ToolTip = "Previous customers" };
+                var pick = new ComboBox { Width = 210, MinHeight = 34, ToolTip = "Previous customers" };
                 pick.Items.Add(new ComboBoxItem { Content = "Previous customers…", IsEnabled = false });
                 foreach (var c in customers) pick.Items.Add(new ComboBoxItem { Content = c.Name, Tag = c });
                 pick.SelectedIndex = 0;
@@ -58,10 +58,7 @@ static class Forms
         return g;
     }
 
-    public static Border Banner(string text, Brush color) => new()
-    {
-        Child = Ui.Text(text, 13, null, color, TextWrapping.Wrap), Background = Ui.Tint(color, 26), CornerRadius = new CornerRadius(8), Padding = new Thickness(12, 8, 12, 8),
-    };
+    public static Squircle Banner(string text, Brush color) => Ui.Note(Ui.Text(text, 13, FontWeights.Medium, color, TextWrapping.Wrap), color);
 
     public static DockPanel Bottom(UIElement left, UIElement right)
     {

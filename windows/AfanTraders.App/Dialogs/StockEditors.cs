@@ -8,7 +8,7 @@ namespace AfanTraders.App;
 sealed class ItemWindow : EditorWindow
 {
     Item item;
-    readonly Border picture = new() { Width = 150, Height = 150, CornerRadius = new CornerRadius(24), BorderBrush = Ui.Line, BorderThickness = new Thickness(1) };
+    readonly Squircle picture = new() { Width = 150, Height = 150, CornerRadius = 36, BorderBrush = Ui.Line, BorderThickness = 1, Background = Ui.CardBg, ClipContent = true, Shadow = 18, ShadowDepth = 3, ShadowOpacity = 0.08 };
 
     public ItemWindow(Item it) : base(900, it.Id == 0 ? 520 : 720)
     {
@@ -101,7 +101,7 @@ sealed class PurchaseWindow : EditorWindow
             Ui.Field("Purchase invoice No. *", Ui.Input(p.Number, v => p = p with { Number = v }, width: 260)), new Border { Width = 12 },
             Ui.Field("Supplier", Ui.Input(p.Supplier, v => p = p with { Supplier = v }, width: 420)), new Border { Width = 12 },
             Ui.Field("Date", Ui.Date(p.Date, v => p = p with { Date = v }))));
-        var table = new Border { Child = rows, Background = Ui.CardBg, BorderBrush = Ui.Line, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10) };
+        var table = new Squircle { Child = rows, Background = Ui.CardBg, BorderBrush = Ui.Line, BorderThickness = 1, CornerRadius = 18, ClipContent = true, Shadow = 18, ShadowDepth = 3, ShadowOpacity = 0.06 };
         var body = new StackPanel();
         body.Children.Add(head);
         body.Children.Add(table.Also(t => t.Margin = new Thickness(0, 14, 0, 10)));
@@ -178,8 +178,9 @@ sealed class PurchaseWindow : EditorWindow
 
         var code = new TextBox { Text = l.Code, MinHeight = 30, VerticalContentAlignment = VerticalAlignment.Center };
         var suggestions = new System.Windows.Controls.Primitives.Popup { StaysOpen = false, PlacementTarget = code, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom, AllowsTransparency = true };
-        var list = new ListBox { Width = 340, MaxHeight = 260 };
-        suggestions.Child = new Border { Child = list, Background = Brushes.White, BorderBrush = Ui.Line, BorderThickness = new Thickness(1) };
+        var list = new ListBox { Width = 340, MaxHeight = 260, BorderThickness = new Thickness(0), Background = Brushes.Transparent };
+        suggestions.HorizontalOffset = -10;
+        suggestions.Child = new Squircle { Child = list, Background = Brushes.White, BorderBrush = Ui.Line, BorderThickness = 1, CornerRadius = 14, Padding = new Thickness(6), Shadow = 24, ShadowDepth = 6, ShadowOpacity = 0.16, Margin = new Thickness(10, 4, 10, 16) };
         void Fill(Item it)
         {
             lines[i] = lines[i] with { ItemId = it.Id, Code = it.Code, Name = it.Name, Details = it.Details, Unit = it.Unit, Cost = it.CostPrice, SalePrice = it.SalePrice, Qty = lines[i].Qty <= 0 ? 1 : lines[i].Qty };
@@ -210,11 +211,11 @@ sealed class PurchaseWindow : EditorWindow
             if (e.Key == System.Windows.Input.Key.Enter && list.SelectedItem is ListBoxItem { Tag: Item it }) { Fill(it); e.Handled = true; }
         };
 
-        var pic = new Button { Padding = new Thickness(2), Background = Brushes.Transparent, BorderThickness = new Thickness(0), ToolTip = "Add a picture (optional)" };
-        void UpdatePic() => pic.Content = lines[i].Image != null || Existing(lines[i])?.Image != null ? Ui.Thumb(lines[i].Image ?? Existing(lines[i])?.Image, 26) : Ui.Text("🖼", 16, null, Ui.Muted);
+        var pic = new Button { Padding = new Thickness(2), Style = Theme.Button(Look.Ghost), MinHeight = 30, ToolTip = "Add a picture (optional)" };
+        void UpdatePic() => pic.Content = lines[i].Image != null || Existing(lines[i])?.Image != null ? Ui.Thumb(lines[i].Image ?? Existing(lines[i])?.Image, 26) : Ui.Glyph("\uEB9F", 16, Ui.Muted);
         pic.Click += (_, _) => { if (Images.Pick() is { } d) { lines[i] = lines[i] with { Image = d }; UpdatePic(); } };
         UpdatePic();
-        var remove = new Button { Content = "✕", Foreground = Ui.Muted, Background = Brushes.Transparent, BorderThickness = new Thickness(0), ToolTip = "Remove row" };
+        var remove = new Button { Content = Ui.Glyph("\uE711", 12, Ui.Muted), Style = Theme.Button(Look.Ghost), Padding = new Thickness(6, 4, 6, 4), MinHeight = 28, ToolTip = "Remove row" };
         remove.Click += (_, _) => { lines.RemoveAt(i); if (lines.Count == 0) lines.Add(new PurchaseLine { Qty = 0 }); Rebuild(); };
 
         Put(g, Ui.Text($"{i + 1}", 13, null, Ui.Muted), 0);

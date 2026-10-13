@@ -59,6 +59,7 @@ sealed class App : Application
 #pragma warning disable WPF0001
         ThemeMode = ThemeMode.Light;   // Windows 11 Fluent look
 #pragma warning restore WPF0001
+        Theme.Apply(this);             // AFAN look on top: squircles, indigo accent
         ShutdownMode = ShutdownMode.OnMainWindowClose;
         DispatcherUnhandledException += (_, ex) =>
         {

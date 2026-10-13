@@ -66,6 +66,7 @@ abstract class EditorWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = Ui.PageBg;
         ShowInTaskbar = false;
+        Theme.Window(this, Ui.CardBg);
         KeyDown += (_, e) =>
         {
             if (e.Key == Key.Escape) Close();
@@ -77,12 +78,12 @@ abstract class EditorWindow : Window
 
     protected void Layout(UIElement header, UIElement body, UIElement footer)
     {
-        var root = new DockPanel();
+        var root = new DockPanel { Background = Ui.PageBg };
         DockPanel.SetDock(header, Dock.Top);
         DockPanel.SetDock(footer, Dock.Bottom);
         root.Children.Add(header);
         root.Children.Add(footer);
-        root.Children.Add(Ui.Scroll(new Border { Child = body, Padding = new Thickness(20) }));
+        root.Children.Add(Ui.Scroll(new Border { Child = body, Padding = new Thickness(24, 20, 24, 24) }));
         Content = root;
     }
 
@@ -93,10 +94,11 @@ sealed class MainWindow : Window
 {
     readonly ContentControl content = new();
     readonly Dictionary<Section, Page> pages = new();
-    readonly Dictionary<Section, (Border Box, TextBlock Label, TextBlock Badge)> navItems = new();
-    readonly TextBlock officeStatus = Ui.Text("", 11.5, null, Ui.Muted);
-    readonly TextBlock cloudStatus = Ui.Text("", 11.5, null, Ui.Muted);
-    readonly Button costButton = new() { HorizontalContentAlignment = HorizontalAlignment.Left, Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(10, 4, 10, 12) };
+    readonly Dictionary<Section, (Squircle Box, TextBlock Label, TextBlock Badge)> navItems = new();
+    readonly TextBlock officeStatus = Ui.Text("", 11.5, null, Theme.SideMuted);
+    readonly TextBlock cloudStatus = Ui.Text("", 11.5, null, Theme.SideMuted);
+    readonly System.Windows.Shapes.Ellipse officeDot = Dot(), cloudDot = Dot();
+    readonly Button costButton = new() { Style = Theme.Button(Look.Glass), HorizontalContentAlignment = HorizontalAlignment.Left, Padding = new Thickness(12, 8, 12, 8), Margin = new Thickness(14, 8, 14, 16) };
     public Section Current { get; private set; } = Section.Dashboard;
     public OrderStage? QuotationFilter { get; set; }
 
@@ -108,10 +110,11 @@ sealed class MainWindow : Window
         Width = 1400; Height = 880; MinWidth = 1100; MinHeight = 700;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Background = Ui.PageBg;
+        Theme.Window(this, Ui.PageBg);
         try { Icon = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/app.ico")); } catch { }
 
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(236) });
+        var grid = new Grid { Background = Ui.PageBg };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(248) });
         grid.ColumnDefinitions.Add(new ColumnDefinition());
         var sidebar = BuildSidebar();
         grid.Children.Add(sidebar);
@@ -129,13 +132,24 @@ sealed class MainWindow : Window
         UpdateStatus();
     }
 
+    static System.Windows.Shapes.Ellipse Dot() => new() { Width = 7, Height = 7, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
+
     UIElement BuildSidebar()
     {
         var list = new StackPanel { Margin = new Thickness(0, 8, 0, 8) };
-        list.Children.Add(Ui.Row(Ui.Icon("quotations", 30), Ui.Text("  AFAN Traders", 16, FontWeights.Bold, Ui.Navy)).Also(r => r.Margin = new Thickness(16, 12, 0, 14)));
+        // Brand: monogram on an indigo squircle.
+        var mark = new Squircle
+        {
+            Width = 38, Height = 38, CornerRadius = 12, Background = Theme.AccentGradient, Shadow = 14, ShadowDepth = 3, ShadowOpacity = 0.45, ShadowColor = Theme.AccentColor,
+            Child = Ui.Text("A", 19, FontWeights.Bold, Brushes.White).Also(t => { t.HorizontalAlignment = HorizontalAlignment.Center; t.Margin = new Thickness(0, 0, 0, 1); }),
+        };
+        var brand = Ui.Row(mark, Ui.Col(0, Ui.Text("AFAN Traders", 15.5, FontWeights.Bold, Brushes.White), Ui.Text("Business Suite", 11.5, null, Theme.SideMuted))
+            .Also(c => c.Margin = new Thickness(11, 0, 0, 0)));
+        brand.Margin = new Thickness(20, 14, 0, 18);
+        list.Children.Add(brand);
         void Group(string title, params (Section S, string Label, string Icon)[] items)
         {
-            list.Children.Add(Ui.Text(title, 11.5, FontWeights.SemiBold, Ui.Muted).Also(t => t.Margin = new Thickness(18, 10, 0, 4)));
+            list.Children.Add(Ui.Text(title.ToUpperInvariant(), 10.5, FontWeights.SemiBold, Theme.SideMuted).Also(t => t.Margin = new Thickness(24, 12, 0, 6)));
             foreach (var (s, label, icon) in items) list.Children.Add(NavItem(s, label, icon));
         }
         Group("Sales", (Section.Dashboard, "Dashboard", "dashboard"), (Section.Quotations, "Quotations", "quotations"),
@@ -145,31 +159,32 @@ sealed class MainWindow : Window
         Group("System", (Section.Settings, "Settings", "settings"));
 
         var bottom = new StackPanel();
-        bottom.Children.Add(new Border { Child = officeStatus, Padding = new Thickness(18, 4, 10, 2), Cursor = Cursors.Hand }.Also(b => b.MouseLeftButtonUp += (_, _) => Show(Section.Settings)));
-        bottom.Children.Add(new Border { Child = cloudStatus, Padding = new Thickness(18, 2, 10, 4), Cursor = Cursors.Hand }.Also(b => b.MouseLeftButtonUp += (_, _) => Show(Section.Settings)));
+        bottom.Children.Add(new Border { Height = 1, Background = Ui.Hex("#1FFFFFFF"), Margin = new Thickness(18, 0, 18, 10) });
+        bottom.Children.Add(new Border { Child = Ui.Row(officeDot, officeStatus), Padding = new Thickness(24, 3, 12, 3), Cursor = Cursors.Hand, Background = Brushes.Transparent }.Also(b => b.MouseLeftButtonUp += (_, _) => Show(Section.Settings)));
+        bottom.Children.Add(new Border { Child = Ui.Row(cloudDot, cloudStatus), Padding = new Thickness(24, 3, 12, 3), Cursor = Cursors.Hand, Background = Brushes.Transparent }.Also(b => b.MouseLeftButtonUp += (_, _) => Show(Section.Settings)));
         costButton.Click += (_, _) => S.ShowCost = !S.ShowCost;
         costButton.ToolTip = "Show or hide cost prices (Ctrl+Shift+K)";
         bottom.Children.Add(costButton);
 
-        var dock = new DockPanel { Background = Ui.Hex("#EEF1F5") };
+        var dock = new DockPanel { Background = Theme.SideBg };
         DockPanel.SetDock(bottom, Dock.Bottom);
         dock.Children.Add(bottom);
         dock.Children.Add(Ui.Scroll(list));
-        return new Border { Child = dock, BorderBrush = Ui.Line, BorderThickness = new Thickness(0, 0, 1, 0) };
+        return dock;
     }
 
     UIElement NavItem(Section s, string label, string icon)
     {
-        var text = Ui.Text(label, 13.5);
-        var badge = new TextBlock { FontSize = 11, FontWeight = FontWeights.Bold, Foreground = Brushes.White, Margin = new Thickness(6, 0, 6, 0) };
-        var badgeBox = new Border { Background = Ui.Orange, CornerRadius = new CornerRadius(9), Child = badge, VerticalAlignment = VerticalAlignment.Center, Visibility = Visibility.Collapsed };
+        var text = Ui.Text(label, 13.5, FontWeights.Medium, Theme.SideText);
+        var badge = new TextBlock { FontSize = 11, FontWeight = FontWeights.Bold, Foreground = Brushes.White, Margin = new Thickness(7, 1, 7, 1) };
+        var badgeBox = new Border { Background = Ui.Hex("#F59E0B"), CornerRadius = new CornerRadius(9), Child = badge, VerticalAlignment = VerticalAlignment.Center, Visibility = Visibility.Collapsed };
         var dock = new DockPanel();
         DockPanel.SetDock(badgeBox, Dock.Right);
         dock.Children.Add(badgeBox);
-        dock.Children.Add(Ui.Row(Ui.Icon(icon, 22).Also(i => i.Margin = new Thickness(0, 0, 10, 0)), text));
-        var box = new Border { Child = dock, Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(10, 1, 10, 1), CornerRadius = new CornerRadius(7), Cursor = Cursors.Hand, Background = Brushes.Transparent };
+        dock.Children.Add(Ui.Row(Ui.Icon(icon, 22).Also(i => i.Margin = new Thickness(0, 0, 11, 0)), text));
+        var box = new Squircle { Child = dock, Padding = new Thickness(12, 8, 10, 8), Margin = new Thickness(12, 1, 12, 1), CornerRadius = 12, Cursor = Cursors.Hand, Background = Brushes.Transparent };
         box.MouseLeftButtonUp += (_, _) => Show(s);
-        box.MouseEnter += (_, _) => { if (Current != s) box.Background = Ui.Tint(Ui.Navy, 18); };
+        box.MouseEnter += (_, _) => { if (Current != s) box.Background = Theme.SideHover; };
         box.MouseLeave += (_, _) => { if (Current != s) box.Background = Brushes.Transparent; };
         navItems[s] = (box, text, badge);
         badge.Tag = badgeBox;
@@ -199,9 +214,10 @@ sealed class MainWindow : Window
         foreach (var (key, (box, label, _)) in navItems)
         {
             var on = key == s;
-            box.Background = on ? Ui.Blue : Brushes.Transparent;
-            label.Foreground = on ? Brushes.White : Brushes.Black;
-            label.FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal;
+            box.Background = on ? Theme.AccentGradient : Brushes.Transparent;
+            box.Shadow = on ? 16 : 0; box.ShadowDepth = 4; box.ShadowOpacity = 0.5; box.ShadowColor = Theme.AccentColor;
+            label.Foreground = on ? Brushes.White : Theme.SideText;
+            label.FontWeight = on ? FontWeights.SemiBold : FontWeights.Medium;
         }
         UpdateBadges();
     }
@@ -229,12 +245,12 @@ sealed class MainWindow : Window
     {
         var lanOn = S.Lan.Enabled;
         var connected = S.Lan.Peers.Count(p => p.Connected);
-        officeStatus.Text = lanOn ? (connected > 0 ? $"🖧  Office: {connected} computer{(connected == 1 ? "" : "s")} connected" : "🖧  Office: looking for computers…") : "";
-        officeStatus.Visibility = lanOn ? Visibility.Visible : Visibility.Collapsed;
-        officeStatus.Foreground = connected > 0 ? Ui.Green : Ui.Muted;
-        cloudStatus.Text = S.Cloud.Settings.Enabled ? "☁  " + S.Cloud.StatusText : "☁  Cloud sync off";
-        cloudStatus.Foreground = S.Cloud.State switch { CloudSync.Phase.Error => Ui.Red, CloudSync.Phase.Offline => Ui.Orange, _ => Ui.Muted };
-        costButton.Content = Ui.Row(Ui.Icon("eye", 18), Ui.Text(S.ShowCost ? "  Cost prices visible" : "  Cost prices hidden", 12, FontWeights.Medium, S.ShowCost ? Ui.Orange : Ui.Muted));
+        officeStatus.Text = lanOn ? (connected > 0 ? $"Office: {connected} computer{(connected == 1 ? "" : "s")} connected" : "Office: looking for computers…") : "";
+        officeStatus.Parent.SetValue(VisibilityProperty, lanOn ? Visibility.Visible : Visibility.Collapsed);
+        officeDot.Fill = connected > 0 ? Theme.SideGreen : Theme.SideAmber;
+        cloudStatus.Text = S.Cloud.Settings.Enabled ? S.Cloud.StatusText : "Cloud sync off";
+        cloudDot.Fill = !S.Cloud.Settings.Enabled ? Theme.SideMuted : S.Cloud.State switch { CloudSync.Phase.Error => Theme.SideRed, CloudSync.Phase.Offline => Theme.SideAmber, _ => Theme.SideGreen };
+        costButton.Content = Ui.Row(Ui.Icon("eye", 18), Ui.Text(S.ShowCost ? "   Cost prices visible" : "   Cost prices hidden", 12.5, FontWeights.SemiBold, S.ShowCost ? Theme.SideAmber : Theme.SideText));
     }
 }
 

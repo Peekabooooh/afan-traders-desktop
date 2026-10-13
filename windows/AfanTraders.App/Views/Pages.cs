@@ -49,44 +49,62 @@ sealed class DashboardPage : Page
 {
     readonly WrapPanel cards = new();
     readonly DataGrid open = Tables.Quotations();
-    readonly TextBlock company = Ui.Text("", 28, FontWeights.Bold, Ui.Navy);
-    readonly Border emptyOpen = Ui.Card(Ui.Text("Nothing pending. 🎉", 14, null, Ui.Muted).Also(t => t.HorizontalAlignment = HorizontalAlignment.Center), 30);
+    readonly TextBlock company = Ui.Text("", 30, FontWeights.Bold, Brushes.White);
+    readonly TextBlock summary = Ui.Text("", 13.5, null, Ui.Hex("#C9CEF9"));
+    readonly Squircle emptyOpen = Ui.Card(Ui.Text("Nothing pending. All quotations are invoiced.", 14, null, Ui.Muted).Also(t => t.HorizontalAlignment = HorizontalAlignment.Center), 30);
 
     public DashboardPage()
     {
-        var header = new DockPanel();
-        var actions = Ui.Row(Ui.Btn("Add Items / Stock", Nav.NewPurchase, icon: "stockin"), Ui.Btn("New Quotation", Nav.NewQuotation, primary: true, icon: "quotations"));
+        // Hero: company name on a deep indigo squircle, with the two main actions.
+        var actions = Ui.Row(Ui.Btn("Add Items / Stock", Nav.NewPurchase, icon: "stockin", look: Look.Glass), Ui.Btn("New Quotation", Nav.NewQuotation, icon: "quotations", look: Look.Light));
+        actions.VerticalAlignment = VerticalAlignment.Center;
+        var heroDock = new DockPanel();
         DockPanel.SetDock(actions, Dock.Right);
-        header.Children.Add(actions);
-        header.Children.Add(Ui.Col(2, company, Ui.Text(DateTime.Now.ToString("dddd, d MMMM yyyy"), 13, null, Ui.Muted)));
+        heroDock.Children.Add(actions);
+        heroDock.Children.Add(Ui.Col(4, Ui.Text(Greeting() + "  ·  " + DateTime.Now.ToString("dddd, d MMMM yyyy"), 13, FontWeights.Medium, Ui.Hex("#AEB5F5")), company, summary));
+        var hero = new Squircle
+        {
+            Child = heroDock, Padding = new Thickness(30, 26, 30, 26), CornerRadius = 24,
+            Background = Theme.Gradient((Color)ColorConverter.ConvertFromString("#1A2152"), (Color)ColorConverter.ConvertFromString("#4337B8")),
+            Shadow = 30, ShadowDepth = 8, ShadowOpacity = 0.22, ShadowColor = (Color)ColorConverter.ConvertFromString("#2B2F8F"),
+        };
 
-        var openHead = new DockPanel { Margin = new Thickness(0, 18, 0, 8) };
-        var all = new TextBlock { Text = "See all quotations", Foreground = Ui.Blue, Cursor = System.Windows.Input.Cursors.Hand, VerticalAlignment = VerticalAlignment.Center };
-        all.MouseLeftButtonUp += (_, _) => { Nav.Main.QuotationFilter = null; Nav.Go(Section.Quotations); };
+        var openHead = new DockPanel { Margin = new Thickness(0, 10, 0, 10) };
+        var all = Ui.Btn("See all quotations", () => { Nav.Main.QuotationFilter = null; Nav.Go(Section.Quotations); }, look: Look.Ghost).Also(b => b.Foreground = Ui.Blue);
         DockPanel.SetDock(all, Dock.Right);
         openHead.Children.Add(all);
-        openHead.Children.Add(Ui.Row(Ui.Heading("Open Orders", 17), Ui.Text("   Quotations that are not invoiced yet", 13, null, Ui.Muted)));
+        openHead.Children.Add(Ui.Row(Ui.Heading("Open Orders", 18), Ui.Text("    Quotations that are not invoiced yet", 13, null, Ui.Muted)));
         open.MinHeight = 300;
 
-        var body = new DockPanel { Margin = new Thickness(24) };
-        var top = Ui.Col(16, header, cards, openHead);
+        var body = new DockPanel { Margin = new Thickness(28, 24, 28, 24) };
+        var top = Ui.Col(20, hero, cards, openHead);
         DockPanel.SetDock(top, Dock.Top);
         body.Children.Add(top);
-        body.Children.Add(new Grid().Also(gr => { gr.Children.Add(open); gr.Children.Add(emptyOpen); }));
+        body.Children.Add(new Grid().Also(gr => { gr.Children.Add(Ui.TableCard(open)); gr.Children.Add(emptyOpen); }));
         Content = body;
     }
+
+    static string Greeting() => DateTime.Now.Hour switch { < 12 => "Good morning", < 17 => "Good afternoon", _ => "Good evening" };
 
     public override void Refresh()
     {
         company.Text = Store.Settings.CompanyName;
         int Count(OrderStage s) => Store.Quotations.Count(q => Store.StageOf(q) == s);
         var month = Store.Invoices.Where(i => i.Date.Year == DateTime.Now.Year && i.Date.Month == DateTime.Now.Month).Sum(i => i.GrandTotal());
+        var pending = Store.Quotations.Where(q => Store.StageOf(q) != OrderStage.Invoiced).ToList();
+        summary.Text = $"{pending.Count} open order{(pending.Count == 1 ? "" : "s")}   ·   {Fmt.Money(month, Store.Settings.Currency)} invoiced this month   ·   {Store.Items.Count} items in inventory";
         cards.Children.Clear();
         void Card(string title, string value, string icon, Brush color, Action click)
         {
-            var c = Ui.Card(Ui.Row(new Border { Child = Ui.Icon(icon, 40), Background = Ui.Tint(color, 30), CornerRadius = new CornerRadius(12), Padding = new Thickness(6) },
-                Ui.Col(2, Ui.Text(value, 22, FontWeights.Bold), Ui.Text(title, 13, null, Ui.Muted)).Also(p => p.Margin = new Thickness(12, 0, 0, 0))), 14);
-            c.Width = 250; c.Margin = new Thickness(0, 0, 14, 14); c.Cursor = System.Windows.Input.Cursors.Hand;
+            var arrow = Ui.Glyph("\uE76C", 11, Ui.Muted);
+            var head = new DockPanel();
+            DockPanel.SetDock(arrow, Dock.Right);
+            head.Children.Add(arrow);
+            head.Children.Add(Ui.IconTile(icon, color, 50, 32).Also(t => t.HorizontalAlignment = HorizontalAlignment.Left));
+            var c = Ui.Card(Ui.Col(14, head, Ui.Col(2, Ui.Text(value, 26, FontWeights.Bold, Ui.Navy), Ui.Text(title, 13, FontWeights.Medium, Ui.Muted))), 18);
+            c.Width = 236; c.Margin = new Thickness(0, 0, 16, 16); c.Cursor = System.Windows.Input.Cursors.Hand;
+            c.MouseEnter += (_, _) => { c.Shadow = 28; c.ShadowDepth = 8; c.ShadowOpacity = 0.12; c.BorderBrush = Ui.Tint(color, 90); };
+            c.MouseLeave += (_, _) => { c.Shadow = 18; c.ShadowDepth = 3; c.ShadowOpacity = 0.06; c.BorderBrush = Ui.Line; };
             c.MouseLeftButtonUp += (_, _) => click();
             cards.Children.Add(c);
         }
@@ -94,9 +112,8 @@ sealed class DashboardPage : Page
         Card("Needs Delivery Challan", $"{Count(OrderStage.NeedsChallan)}", "challans", Ui.Blue, () => Go(OrderStage.NeedsChallan));
         Card("Challan Pending Approval", $"{Count(OrderStage.AwaitingApproval)}", "pending", Ui.Orange, () => Go(OrderStage.AwaitingApproval));
         Card("Ready to Invoice", $"{Count(OrderStage.ReadyToInvoice)}", "ready", Ui.Green, () => Go(OrderStage.ReadyToInvoice));
-        Card("Invoiced This Month", Fmt.Money(month, Store.Settings.Currency), "money", Ui.Navy, () => Nav.Go(Section.Invoices));
+        Card("Invoiced This Month", Fmt.Money(month, Store.Settings.Currency), "money", Ui.Hex("#7357F6"), () => Nav.Go(Section.Invoices));
         Card("Items Out of Stock", $"{Store.Items.Count(i => i.Stock <= 0)}", "warning", Ui.Red, () => Nav.Go(Section.Inventory));
-        var pending = Store.Quotations.Where(q => Store.StageOf(q) != OrderStage.Invoiced).ToList();
         open.ItemsSource = pending;
         open.Visibility = pending.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         emptyOpen.Visibility = pending.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
@@ -106,9 +123,9 @@ sealed class DashboardPage : Page
 sealed class QuotationsPage : Page
 {
     readonly DataGrid grid = Tables.Quotations();
-    readonly StackPanel filters = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(20, 0, 20, 10) };
+    readonly StackPanel filters = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(28, 0, 28, 14) };
     readonly TextBlock count = Ui.Text("", 13, null, Ui.Muted);
-    readonly Border empty;
+    readonly Squircle empty;
     string search = "";
 
     public QuotationsPage()
@@ -116,7 +133,7 @@ sealed class QuotationsPage : Page
         empty = PageParts.Empty("quotations", "No quotations yet", "Create your first quotation from items in your inventory.", Ui.Btn("New Quotation", Nav.NewQuotation, primary: true));
         var top = Ui.Col(0, PageParts.TitleBar("Quotations", PageParts.Search("Search quotation No., PO No. or customer", s => { search = s; Refresh(); }),
                                               Ui.Btn("New Quotation", Nav.NewQuotation, primary: true, icon: "quotations")), filters);
-        Content = PageParts.Layout(top, new Grid().Also(g => { g.Children.Add(grid); g.Children.Add(empty); }));
+        Content = PageParts.Layout(top, new Grid().Also(g => { g.Children.Add(Ui.TableCard(grid)); g.Children.Add(empty); }));
     }
 
     void BuildFilters()
@@ -125,7 +142,7 @@ sealed class QuotationsPage : Page
         void F(string label, OrderStage? s)
         {
             var on = Nav.Main.QuotationFilter == s;
-            var b = new ToggleButton { Content = label, IsChecked = on, Padding = new Thickness(14, 5, 14, 5), Margin = new Thickness(0, 0, 6, 0) };
+            var b = new ToggleButton { Content = label, IsChecked = on, Style = Theme.Chip, Margin = new Thickness(0, 0, 8, 0) };
             b.Click += (_, _) => { Nav.Main.QuotationFilter = s; Refresh(); };
             filters.Children.Add(b);
         }
@@ -150,7 +167,7 @@ sealed class QuotationsPage : Page
 sealed class ChallansPage : Page
 {
     readonly DataGrid grid = Grids.Make();
-    readonly Border empty = PageParts.Empty("challans", "No delivery challans yet", "Open a quotation and click “Create Delivery Challan”.");
+    readonly Squircle empty = PageParts.Empty("challans", "No delivery challans yet", "Open a quotation and click “Create Delivery Challan”.");
     string search = "";
 
     public ChallansPage()
@@ -163,9 +180,9 @@ sealed class ChallansPage : Page
         grid.Add<Challan>("Vehicle", 100, c => c.VehicleNo.Length == 0 ? "—" : c.VehicleNo);
         grid.AddCell<Challan>("Status", 150, c => Ui.Pill(c.Status == ChallanStatus.Approved ? "✔ Approved" : "⏳ Pending approval", c.Status == ChallanStatus.Approved ? Ui.Green : Ui.Orange));
         grid.AddCell<Challan>("Invoice", 150, c => Store.InvoiceForChallan(c.Id) is { } i ? Ui.Text(i.Number, 13, null, Ui.Green)
-            : c.Status == ChallanStatus.Approved ? Ui.Btn("Create Invoice", () => Nav.Open(new InvoiceWindow(Store.DraftInvoice(c))), primary: true, tint: Ui.Green).Also(b => { b.Padding = new Thickness(8, 2, 8, 2); b.MinHeight = 26; b.Margin = new Thickness(0); })
+            : c.Status == ChallanStatus.Approved ? Ui.Btn("Create Invoice", () => Nav.Open(new InvoiceWindow(Store.DraftInvoice(c))), primary: true, tint: Ui.Green).Also(b => { b.Padding = new Thickness(12, 3, 12, 3); b.MinHeight = 30; b.Margin = new Thickness(0); })
             : Ui.Text("—", 13, null, Ui.Muted));
-        grid.AddCell<Challan>("", 50, c => Ui.Btn("🖨", () => Nav.Preview(Store.Printable(c)), tooltip: "Preview / Print").Also(b => { b.Padding = new Thickness(4, 0, 4, 0); b.MinHeight = 26; b.Margin = new Thickness(0); }));
+        grid.AddCell<Challan>("", 56, c => Ui.IconBtn("printer", () => Nav.Preview(Store.Printable(c)), "Preview / Print"));
         grid.OnOpen<Challan>(c => Nav.Open(new ChallanWindow(c)));
         grid.Menu<Challan>(c => new List<(string, Action)>
         {
@@ -174,7 +191,7 @@ sealed class ChallansPage : Page
             ("Open Quotation", () => { if (Store.QuotationById(c.QuotationId) is { } q) Nav.Open(new QuotationWindow(q)); }),
         });
         var top = PageParts.TitleBar("Delivery Challans", PageParts.Search("Search DC No., PO No., customer or vehicle", s => { search = s; Refresh(); }));
-        Content = PageParts.Layout(top, new Grid().Also(g => { g.Children.Add(grid); g.Children.Add(empty); }));
+        Content = PageParts.Layout(top, new Grid().Also(g => { g.Children.Add(Ui.TableCard(grid)); g.Children.Add(empty); }));
     }
 
     public override void Refresh()
@@ -190,8 +207,8 @@ sealed class ChallansPage : Page
 sealed class InvoicesPage : Page
 {
     readonly DataGrid grid = Grids.Make();
-    readonly TextBlock totals = Ui.Text("", 13, FontWeights.SemiBold);
-    readonly Border empty = PageParts.Empty("invoices", "No invoices yet", "Approve a delivery challan, then click “Create Invoice”.");
+    readonly TextBlock totals = Ui.Text("", 13, FontWeights.SemiBold, Theme.Ink2);
+    readonly Squircle empty = PageParts.Empty("invoices", "No invoices yet", "Approve a delivery challan, then click “Create Invoice”.");
     string search = "";
 
     public InvoicesPage()
@@ -205,7 +222,7 @@ sealed class InvoicesPage : Page
         grid.Add<Invoice>("Subtotal", 115, i => Fmt.Money(i.Subtotal()), right: true);
         grid.Add<Invoice>("Sales Tax", 105, i => Fmt.Money(i.TaxAmount()), right: true);
         grid.Add<Invoice>("Total", 125, i => Fmt.Money(i.GrandTotal()), right: true, bold: true);
-        grid.AddCell<Invoice>("", 50, i => Ui.Btn("🖨", () => Nav.Preview(Store.Printable(i)), tooltip: "Preview / Print").Also(b => { b.Padding = new Thickness(4, 0, 4, 0); b.MinHeight = 26; b.Margin = new Thickness(0); }));
+        grid.AddCell<Invoice>("", 56, i => Ui.IconBtn("printer", () => Nav.Preview(Store.Printable(i)), "Preview / Print"));
         grid.OnOpen<Invoice>(i => Nav.Open(new InvoiceWindow(i)));
         grid.Menu<Invoice>(i => new List<(string, Action)>
         {
@@ -215,7 +232,7 @@ sealed class InvoicesPage : Page
             ("Open Delivery Challan", () => { if (Store.ChallanById(i.ChallanId) is { } c) Nav.Open(new ChallanWindow(c)); }),
         });
         var top = PageParts.TitleBar("Invoices", PageParts.Search("Search invoice No., PO No. or customer", s => { search = s; Refresh(); }));
-        Content = PageParts.Layout(top, new Grid().Also(g => { g.Children.Add(grid); g.Children.Add(empty); }), new Border { Child = totals, Padding = new Thickness(20, 8, 20, 10) });
+        Content = PageParts.Layout(top, new Grid().Also(g => { g.Children.Add(Ui.TableCard(grid)); g.Children.Add(empty); }), new Border { Child = totals, Padding = new Thickness(30, 12, 30, 16) });
     }
 
     public override void Refresh()
@@ -233,13 +250,13 @@ sealed class InvoicesPage : Page
 sealed class InventoryPage : Page
 {
     readonly DataGrid grid = Grids.Make();
-    readonly TextBlock footer = Ui.Text("", 13);
-    readonly Border empty = PageParts.Empty("inventory", "Inventory is empty", "Enter a purchase invoice number and add all its items in one go.", Ui.Btn("Add Items / Stock", Nav.NewPurchase, primary: true));
+    readonly TextBlock footer = Ui.Text("", 13, FontWeights.Medium, Theme.Ink2);
+    readonly Squircle empty = PageParts.Empty("inventory", "Inventory is empty", "Enter a purchase invoice number and add all its items in one go.", Ui.Btn("Add Items / Stock", Nav.NewPurchase, primary: true));
     string search = "";
 
     public InventoryPage()
     {
-        grid.AddCell<Item>("", 44, i => Ui.Thumb(i.Image, 28));
+        grid.AddCell<Item>("", 50, i => Ui.Thumb(i.Image, 32));
         grid.Add<Item>("Item ID", 130, i => i.Code, nameof(Item.Code), bold: true);
         grid.Add<Item>("Name", 0, i => i.Name, nameof(Item.Name));
         grid.Add<Item>("Description", 220, i => i.Details, color: _ => Ui.Muted);
@@ -261,7 +278,7 @@ sealed class InventoryPage : Page
         var top = PageParts.TitleBar("Inventory", PageParts.Search("Search Item ID, name or description", s => { search = s; Refresh(); }),
             Ui.Btn("New Single Item", () => Nav.Open(new ItemWindow(new Item()))),
             Ui.Btn("Add Items / Stock", Nav.NewPurchase, primary: true, icon: "stockin"));
-        Content = PageParts.Layout(top, new Grid().Also(g => { g.Children.Add(grid); g.Children.Add(empty); }), new Border { Child = footer, Padding = new Thickness(20, 8, 20, 10) });
+        Content = PageParts.Layout(top, new Grid().Also(g => { g.Children.Add(Ui.TableCard(grid)); g.Children.Add(empty); }), new Border { Child = footer, Padding = new Thickness(30, 12, 30, 16) });
     }
 
     public override void Refresh()
@@ -283,7 +300,7 @@ sealed class PurchasesPage : Page
 {
     readonly DataGrid grid = Grids.Make();
     readonly Grid holder = new();
-    readonly Border locked, empty;
+    readonly Squircle locked, empty;
 
     public PurchasesPage()
     {
@@ -295,7 +312,7 @@ sealed class PurchasesPage : Page
         grid.OnOpen<Purchase>(p => Nav.Open(new PurchaseWindow(p)));
         locked = PageParts.Empty("eye", "Purchases show cost prices", "Cost prices are hidden right now. Show them to view or enter purchases.", Ui.Btn("Show Cost Prices", () => S.ShowCost = true, primary: true));
         empty = PageParts.Empty("purchases", "No purchases yet", "Enter a supplier's purchase invoice to add items to stock.", Ui.Btn("Add Items / Stock", Nav.NewPurchase, primary: true));
-        holder.Children.Add(grid); holder.Children.Add(locked); holder.Children.Add(empty);
+        holder.Children.Add(Ui.TableCard(grid)); holder.Children.Add(locked); holder.Children.Add(empty);
         Content = PageParts.Layout(PageParts.TitleBar("Purchase Invoices", null, Ui.Btn("Add Items / Stock", Nav.NewPurchase, primary: true, icon: "stockin")), holder);
     }
 

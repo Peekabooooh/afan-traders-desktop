@@ -11,17 +11,17 @@ namespace AfanTraders.App;
 /// <summary>Small helpers so screens can be built in (compile-checked) C# code.</summary>
 static class Ui
 {
-    public static readonly Brush Navy = Hex("#1F3B66");
-    public static readonly Brush Blue = Hex("#3373D9");
-    public static readonly Brush Green = Hex("#219A5C");
-    public static readonly Brush Orange = Hex("#EB8C1A");
-    public static readonly Brush Red = Hex("#D94040");
-    public static readonly Brush Muted = Hex("#6B7380");
-    public static readonly Brush Line = Hex("#E3E7EC");
+    public static readonly Brush Navy = Hex("#101828");     // ink: headings and totals
+    public static readonly Brush Blue = Hex("#4C5BF0");     // indigo accent
+    public static readonly Brush Green = Hex("#0E8F63");
+    public static readonly Brush Orange = Hex("#C76A0A");
+    public static readonly Brush Red = Hex("#D93A3F");
+    public static readonly Brush Muted = Hex("#667085");
+    public static readonly Brush Line = Hex("#E7E9F0");
     public static readonly Brush CardBg = Hex("#FFFFFF");
-    public static readonly Brush PageBg = Hex("#F4F6F9");
-    public static readonly Brush Zebra = Hex("#F8F9FB");
-    public static readonly Brush SelectedBg = Hex("#DCE8FA");
+    public static readonly Brush PageBg = Hex("#F4F5F9");
+    public static readonly Brush Zebra = Hex("#FAFBFD");
+    public static readonly Brush SelectedBg = Hex("#EEF0FE");
 
     public static SolidColorBrush Hex(string hex)
     {
@@ -52,24 +52,31 @@ static class Ui
         return img;
     }
 
-    public static Button Btn(string text, Action onClick, bool primary = false, string? icon = null, Brush? tint = null, string? tooltip = null)
+    public static Button Btn(string text, Action onClick, bool primary = false, string? icon = null, Brush? tint = null, string? tooltip = null, Look? look = null)
     {
         var content = new StackPanel { Orientation = Orientation.Horizontal };
-        if (icon != null) content.Children.Add(Ui.Icon(icon, 18).Also(i => i.Margin = new Thickness(0, 0, 6, 0)));
-        content.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center });
-        var b = new Button { Content = content, Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(4, 0, 0, 0), MinHeight = 32 };
-        if (primary)
-        {
-            b.Background = tint ?? Blue;
-            b.Foreground = Brushes.White;
-            b.BorderBrush = tint ?? Blue;
-            b.FontWeight = FontWeights.SemiBold;
-        }
+        if (icon != null) content.Children.Add(Ui.Icon(icon, 18).Also(i => i.Margin = new Thickness(0, 0, text.Length > 0 ? 7 : 0, 0)));
+        if (text.Length > 0) content.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center });
+        var kind = look ?? (primary ? Look.Primary : Look.Secondary);
+        var b = new Button { Content = content, Style = Theme.Button(kind), Margin = new Thickness(6, 0, 0, 0) };
+        if (kind == Look.Primary && tint != null) b.Background = Theme.GradientOf(tint);
         else if (tint != null) b.Foreground = tint;
         if (tooltip != null) b.ToolTip = tooltip;
         b.Click += (_, _) => Safe(onClick);
         return b;
     }
+
+    /// <summary>Small square icon button (print, remove…).</summary>
+    public static Button IconBtn(string icon, Action onClick, string tooltip, Look look = Look.Secondary)
+    {
+        var b = Btn("", onClick, icon: icon, tooltip: tooltip, look: look);
+        b.Padding = new Thickness(6, 3, 6, 3); b.MinHeight = 30; b.MinWidth = 32; b.Margin = new Thickness(0);
+        return b;
+    }
+
+    /// <summary>A glyph from the Windows icon font (Segoe Fluent Icons / MDL2).</summary>
+    public static TextBlock Glyph(string code, double size = 14, Brush? color = null) =>
+        new() { Text = code, FontFamily = Theme.IconFont, FontSize = size, Foreground = color ?? Muted, VerticalAlignment = VerticalAlignment.Center };
 
     /// <summary>Runs an action and shows a friendly message instead of crashing.</summary>
     public static void Safe(Action a)
@@ -103,24 +110,48 @@ static class Ui
         return p;
     }
 
-    public static Border Card(UIElement child, double pad = 16) => new()
+    /// <summary>White squircle card with a soft shadow.</summary>
+    public static Squircle Card(UIElement child, double pad = 18) => new()
     {
-        Child = child, Padding = new Thickness(pad), Background = CardBg, BorderBrush = Line, BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(10),
+        Child = child, Padding = new Thickness(pad), Background = CardBg, BorderBrush = Line, BorderThickness = 1,
+        CornerRadius = 18, Shadow = 18, ShadowDepth = 3, ShadowOpacity = 0.06,
+    };
+
+    /// <summary>Card that holds a table: content cut to the rounded corners, shown and hidden with the table.</summary>
+    public static Squircle TableCard(DataGrid grid)
+    {
+        var c = Card(grid, 0);
+        c.ClipContent = true;
+        c.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding(nameof(Visibility)) { Source = grid });
+        return c;
+    }
+
+    /// <summary>A 3D icon on a soft tinted squircle tile.</summary>
+    public static Squircle IconTile(string icon, Brush color, double size = 48, double iconSize = 30) => new()
+    {
+        Width = size, Height = size, CornerRadius = size * 0.3, Background = Tint(color, 24),
+        Child = Icon(icon, iconSize).Also(i => { i.HorizontalAlignment = HorizontalAlignment.Center; i.VerticalAlignment = VerticalAlignment.Center; }),
+        VerticalAlignment = VerticalAlignment.Center,
+    };
+
+    /// <summary>Coloured note strip (warnings, hints).</summary>
+    public static Squircle Note(UIElement child, Brush color) => new()
+    {
+        Child = child, Background = Tint(color, 22), BorderBrush = Tint(color, 60), BorderThickness = 1, CornerRadius = 12, Padding = new Thickness(14, 9, 14, 9),
     };
 
     /// <summary>Label above a control.</summary>
     public static StackPanel Field(string label, UIElement control)
     {
         var p = new StackPanel { Margin = new Thickness(0, 0, 0, 2) };
-        p.Children.Add(new TextBlock { Text = label, FontSize = 12, Foreground = Muted, Margin = new Thickness(0, 0, 0, 3) });
+        p.Children.Add(new TextBlock { Text = label, FontSize = 12.5, FontWeight = FontWeights.Medium, Foreground = Theme.Ink2, Margin = new Thickness(1, 0, 0, 5) });
         p.Children.Add(control);
         return p;
     }
 
     public static TextBox Input(string text, Action<string> changed, bool multiline = false, double? width = null)
     {
-        var t = new TextBox { Text = text, MinHeight = 30, VerticalContentAlignment = VerticalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var t = new TextBox { Text = text, VerticalContentAlignment = VerticalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         if (multiline) { t.AcceptsReturn = true; t.TextWrapping = TextWrapping.Wrap; t.MinHeight = 56; t.VerticalContentAlignment = VerticalAlignment.Top; t.VerticalAlignment = VerticalAlignment.Stretch; }
         if (width is { } w) { t.Width = w; t.HorizontalAlignment = HorizontalAlignment.Left; }
         t.TextChanged += (_, _) => changed(t.Text);
@@ -130,7 +161,7 @@ static class Ui
     /// <summary>Number box: updates the value as you type (commas allowed).</summary>
     public static TextBox Number(double value, Action<double> changed, double width = 90)
     {
-        var t = new TextBox { Text = Fmt.Editable(value), Width = width, MinHeight = 30, TextAlignment = TextAlignment.Right, VerticalContentAlignment = VerticalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var t = new TextBox { Text = Fmt.Editable(value), Width = width, TextAlignment = TextAlignment.Right, VerticalContentAlignment = VerticalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         t.TextChanged += (_, _) => { if (Fmt.Parse(t.Text) is { } v) changed(v); else if (t.Text.T().Length == 0) changed(0); };
         t.LostFocus += (_, _) => t.Text = Fmt.Editable(Fmt.Parse(t.Text) ?? 0);
         t.GotKeyboardFocus += (_, _) => t.SelectAll();
@@ -139,7 +170,7 @@ static class Ui
 
     public static DatePicker Date(DateTime value, Action<DateTime> changed)
     {
-        var d = new DatePicker { SelectedDate = value, MinHeight = 30, Width = 150 };
+        var d = new DatePicker { SelectedDate = value, MinHeight = 34, Width = 150, VerticalContentAlignment = VerticalAlignment.Center };
         d.SelectedDateChanged += (_, _) => { if (d.SelectedDate is { } v) changed(v.Date + value.TimeOfDay); };
         return d;
     }
@@ -148,7 +179,7 @@ static class Ui
     {
         return new Border
         {
-            Background = Tint(color, 36), CornerRadius = new CornerRadius(10), Padding = new Thickness(8, 2, 8, 2),
+            Background = Tint(color, 26), CornerRadius = new CornerRadius(11), Padding = new Thickness(9, 3, 9, 3),
             VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left,
             Child = new TextBlock { Text = text, FontSize = 11.5, FontWeight = FontWeights.SemiBold, Foreground = color },
         };
@@ -158,7 +189,7 @@ static class Ui
     {
         var img = new Image { Width = size, Height = size, Stretch = Stretch.UniformToFill };
         img.Source = Images.Load(data) ?? new BitmapImage(new Uri("pack://application:,,,/Icons/inventory.png"));
-        img.Clip = new RectangleGeometry(new Rect(0, 0, size, size), size * 0.2, size * 0.2);
+        img.Clip = Squircle.Shape(new Rect(0, 0, size, size), size * 0.26);
         return img;
     }
 
@@ -166,10 +197,10 @@ static class Ui
     public static Border Header(string title, string subtitle, string icon)
     {
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        text.Children.Add(Text(title, 20, FontWeights.SemiBold));
-        if (subtitle.Length > 0) text.Children.Add(Text(subtitle, 13, null, Muted));
-        var row = Row(Icon(icon, 40).Also(i => i.Margin = new Thickness(0, 0, 12, 0)), text);
-        return new Border { Child = row, Padding = new Thickness(20, 14, 20, 14), BorderBrush = Line, BorderThickness = new Thickness(0, 0, 0, 1), Background = CardBg };
+        text.Children.Add(Text(title, 21, FontWeights.SemiBold, Navy));
+        if (subtitle.Length > 0) text.Children.Add(Text(subtitle, 13, null, Muted).Also(t => t.Margin = new Thickness(0, 2, 0, 0)));
+        var row = Row(IconTile(icon, Blue, 52, 34).Also(i => i.Margin = new Thickness(0, 0, 14, 0)), text);
+        return new Border { Child = row, Padding = new Thickness(24, 16, 24, 16), BorderBrush = Line, BorderThickness = new Thickness(0, 0, 0, 1), Background = CardBg };
     }
 
     /// <summary>Bottom button bar for editor windows: left items, then right items.</summary>
@@ -178,7 +209,7 @@ static class Ui
         var g = new DockPanel { LastChildFill = false };
         foreach (var l in left) { DockPanel.SetDock(l, Dock.Left); g.Children.Add(l); }
         foreach (var r in right.Reverse()) { DockPanel.SetDock(r, Dock.Right); g.Children.Add(r); }
-        return new Border { Child = g, Padding = new Thickness(16, 10, 16, 10), BorderBrush = Line, BorderThickness = new Thickness(0, 1, 0, 0), Background = CardBg };
+        return new Border { Child = g, Padding = new Thickness(20, 12, 20, 12), BorderBrush = Line, BorderThickness = new Thickness(0, 1, 0, 0), Background = CardBg };
     }
 
     public static T Also<T>(this T x, Action<T> f) { f(x); return x; }
